@@ -13,10 +13,12 @@ public class McpServerApplication {
         SpringApplication.run(McpServerApplication.class, args);
     }
 
+   
+
     @Bean
-    public ToolCallbackProvider opsTools(NetworkTools networkTools) {
+    public ToolCallbackProvider opsTools(NetworkTools networkTools, KnowledgeTools knowledgeTools) {
         return MethodToolCallbackProvider.builder()
-                .toolObjects(networkTools)
+                .toolObjects(networkTools, knowledgeTools)
                 .build();
     }
 }
