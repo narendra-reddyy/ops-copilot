@@ -14,12 +14,14 @@ public class McpServerApplication {
     }
 
    
+
     @Bean
     public ToolCallbackProvider opsTools(NetworkTools networkTools,
                                          KnowledgeTools knowledgeTools,
-                                         LogTools logTools) {
+                                         LogTools logTools,
+                                         TicketTools ticketTools) {
         return MethodToolCallbackProvider.builder()
-                .toolObjects(networkTools, knowledgeTools, logTools)
+                .toolObjects(networkTools, knowledgeTools, logTools, ticketTools)
                 .build();
     }
 }
