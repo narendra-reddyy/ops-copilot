@@ -1,17 +1,11 @@
-2026-11-03 08:30:12 INFO  ehr-app01 ehr-service: Health check OK
-2026-11-03 08:35:44 INFO  ehr-app01 ehr-service: 412 active sessions
-2026-11-03 08:38:02 WARN  ehr-app01 kernel: /var volume at 91% capacity
-2026-11-03 08:39:15 WARN  ehr-app01 kernel: /var volume at 97% capacity
-2026-11-03 08:40:01 ERROR ehr-app01 ehr-service: write failed: No space left on device
-2026-11-03 08:40:02 ERROR ehr-app01 ehr-service: could not write session file: No space left on device
-2026-11-03 08:40:05 ERROR ehr-app01 ehr-service: java.lang.OutOfMemoryError: Java heap space
-2026-11-03 08:40:06 FATAL ehr-app01 ehr-service: service stopped unexpectedly (exit code 137)
-2026-11-03 08:41:10 ERROR ehr-web01 nginx: connect() failed (111: Connection refused) upstream ehr-app01:8443
-2026-11-03 08:41:11 ERROR ehr-web01 nginx: connect() failed (111: Connection refused) upstream ehr-app01:8443
-2026-11-03 08:41:30 ERROR ehr-web01 nginx: connect() failed (111: Connection refused) upstream ehr-app01:8443
-2026-11-03 08:42:00 WARN  lab-srv02 sshd: Failed password for admin from 10.20.9.44 port 52114
-2026-11-03 08:42:03 WARN  lab-srv02 sshd: Failed password for admin from 10.20.9.44 port 52116
-2026-11-03 08:42:09 WARN  lab-srv02 sshd: Failed password for admin from 10.20.9.44 port 52121
-2026-11-03 08:45:00 INFO  dns01 named: zone internal reloaded
-2026-11-03 08:46:12 ERROR dns01 named: zone internal: NXDOMAIN for vpn.internal
-2026-11-03 08:50:00 INFO  ehr-app01 ehr-service: Health check FAILED
+# Secrets: never push these
+.env
+*.env
+
+# Python
+__pycache__/
+.venv/
+venv/
+
+# Local ticket database
+*.db
