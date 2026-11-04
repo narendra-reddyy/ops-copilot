@@ -15,7 +15,8 @@ except ImportError:
 load_dotenv()
 MCP_URL = os.getenv("MCP_URL", "http://localhost:8080/mcp")
 MODEL = os.getenv("MODEL", "claude-sonnet-5-5")
-MAX_TOOL_CALLS = 8
+MAX_TOOL_CALLS = 8   # diagnostic checks; create_ticket is always allowed
+MAX_ROUNDS = 12      # absolute safety stop for the whole loop
 
 SYSTEM_PROMPT = """You are Ops Copilot, an IT incident triage assistant.
 Investigate the incident the way an experienced infrastructure engineer would:
@@ -30,7 +31,9 @@ Rules:
 - Base conclusions only on tool results. Say "likely cause", never "root cause".
 - Never guess affected_users or reported_by. Leave them empty unless stated.
 - Before each tool call, write one short sentence saying why you are running it.
-- After create_ticket, finish with a 2-3 sentence plain-English summary."""
+- After create_ticket, finish with a 2-3 sentence plain-English summary.
+- You have a budget of 8 diagnostic tool calls. create_ticket does not count.
+- If DNS fails for a host, do not run ping_host or check_port on that host again."""
 
 
 def mcp_tools_to_claude(mcp_tools):
@@ -61,7 +64,7 @@ async def run_agent(incident: str, on_event=print):
             tools = mcp_tools_to_claude((await session.list_tools()).tools)
             messages = [{"role": "user", "content": incident}]
 
-            while True:
+            for _round in range(MAX_ROUNDS):
                 response = await client.messages.create(
                     model=MODEL,
                     max_tokens=4000,
@@ -84,20 +87,28 @@ async def run_agent(incident: str, on_event=print):
                 for block in response.content:
                     if block.type != "tool_use":
                         continue
-                    tool_calls += 1
-                    if tool_calls > MAX_TOOL_CALLS:
-                        text, is_error = "STOPPED: tool call limit reached. Write the ticket now.", True
+                    is_ticket = block.name == "create_ticket"
+
+                    if not is_ticket and tool_calls >= MAX_TOOL_CALLS:
+                        # Budget used up: refuse more checks, but steer to the ticket
+                        text = ("STOPPED: diagnostic budget used up. Do not run more checks. "
+                                "Call create_ticket now with the evidence you have.")
+                        is_error = True
+                        on_event("result", {"name": block.name, "text": text})
                     else:
+                        if not is_ticket:
+                            tool_calls += 1
                         on_event("call", {"name": block.name, "input": block.input})
                         result = await session.call_tool(block.name, block.input)
                         text = "\n".join(c.text for c in result.content if c.type == "text")
                         is_error = bool(getattr(result, "is_error", getattr(result, "isError", False)))
                         on_event("result", {"name": block.name, "text": text})
-                        if block.name == "create_ticket":
+                        if is_ticket:
                             try:
                                 ticket = json.loads(text)
                             except json.JSONDecodeError:
                                 ticket = {"raw": text}
+
                     results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
