@@ -6,6 +6,7 @@ import streamlit as st
 from mcp import ClientSession
 
 from agent import MAX_TOOL_CALLS, MCP_URL, MODEL, http_client, run_agent
+from tickets_db import save_ticket
 
 st.set_page_config(page_title="Ops Copilot", page_icon=":material/monitor_heart:", layout="wide")
 
@@ -18,6 +19,8 @@ EXAMPLES = {
 }
 BAD = ("UNREACHABLE", "DNS_FAILURE", "TIMED_OUT", "CLOSED", "ERROR", "STOPPED", "NO_")
 GOOD = ("REACHABLE", "RESOLVED", "OPEN", "FOUND", "BEST MATCH", "AVAILABLE")
+PRIORITIES = ["1 - Critical", "2 - High", "3 - Moderate", "4 - Low"]
+CATEGORIES = ["Network", "DNS", "Server", "Storage", "Security", "Application"]
 
 
 # ---------- helpers ----------
@@ -84,6 +87,70 @@ def render_event(box, event, ctx):
             card.code(clean(data["text"])[:1500], language=None)
         ctx["card"] = None
 
+def render_ticket_form(t, res):
+    """Plain English ticket form. JSON is built in the background on save."""
+    st.subheader("Ticket draft")
+    st.caption("Review and edit, then save. Nothing is filed until you save.")
+
+    missing = [f for f in ("affected_users", "reported_by") if not t.get(f)]
+    if missing:
+        names = ", ".join(m.replace("_", " ") for m in missing)
+        st.warning(f"{len(missing)} field(s) missing: {names}. The agent couldn't find them "
+                   "in the report. Fill them in before saving.")
+
+    def pick(options, value, default):
+        return options.index(value) if value in options else default
+
+    with st.form(f"ticket_form_{res['run_id']}"):
+        title = st.text_input("Title", t.get("title") or "")
+        c1, c2, c3 = st.columns(3)
+        priority = c1.selectbox("Priority", PRIORITIES, index=pick(PRIORITIES, t.get("priority"), 1))
+        category = c2.selectbox("Category", CATEGORIES, index=pick(CATEGORIES, t.get("category"), 0))
+        group = c3.text_input("Assignment group", t.get("assignment_group") or "")
+
+        c4, c5 = st.columns(2)
+        users_label = "Affected users" + ("" if t.get("affected_users") else " :orange[(missing)]")
+        reporter_label = "Reported by" + ("" if t.get("reported_by") else " :orange[(missing)]")
+        affected = c4.text_input(users_label, t.get("affected_users") or "",
+                                 placeholder="e.g. about 40, all of floor 3")
+        reporter = c5.text_input(reporter_label, t.get("reported_by") or "",
+                                 placeholder="Caller name or team")
+
+        what = st.text_area("What happened", t.get("what_happened") or "", height=90)
+        cause = st.text_area("Likely cause", t.get("likely_cause") or "", height=110)
+        fix = st.text_area("Recommended fix", t.get("recommended_fix") or "", height=110)
+        notes = st.text_area("Checks run (work notes, one per line)",
+                             "\n".join(t.get("checks_run") or []), height=140)
+
+        b1, b2, _ = st.columns([1, 1, 4])
+        save = b1.form_submit_button("Save ticket", type="primary")
+        discard = b2.form_submit_button("Discard")
+
+    if discard:
+        st.session_state.result = None
+        st.rerun()
+
+    if save:
+        required = {
+            "Title": title, "Assignment group": group, "Affected users": affected,
+            "Reported by": reporter, "What happened": what,
+            "Likely cause": cause, "Recommended fix": fix,
+        }
+        empty = [name for name, value in required.items() if not value.strip()]
+        if empty:
+            st.error("Please fill in: " + ", ".join(empty))
+            return
+        code = save_ticket({
+            "title": title.strip(), "priority": priority, "category": category,
+            "assignment_group": group.strip(), "affected_users": affected.strip(),
+            "reported_by": reporter.strip(), "what_happened": what.strip(),
+            "likely_cause": cause.strip(), "recommended_fix": fix.strip(),
+            "checks_run": [line.strip() for line in notes.splitlines() if line.strip()],
+            "incident": res["incident"],
+        })
+        st.session_state.saved_run = res["run_id"]
+        st.session_state.saved_code = code
+        st.rerun()
 
 def use_example(text):
     st.session_state.incident = text
@@ -147,6 +214,7 @@ if run:
     st.session_state.result = {
         "incident": incident, "events": events, "summary": summary,
         "ticket": ticket, "elapsed": time.time() - start, "steps": ctx["n"],
+        "run_id": int(start * 1000),
     }
 
 
@@ -185,4 +253,9 @@ if res:
             st.markdown("**Recommended next steps**")
             st.write(t.get("recommended_fix"))
 
-        st.info("Next: review, edit and save this ticket (coming in Step 17).")
+        st.divider()
+        if st.session_state.get("saved_run") == res["run_id"]:
+            st.success(f"Ticket saved as {st.session_state.saved_code}. "
+                       "It will appear on the Tickets page (Step 18).")
+        else:
+            render_ticket_form(t, res)
