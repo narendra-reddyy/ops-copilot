@@ -255,7 +255,8 @@ if res:
 
         st.divider()
         if st.session_state.get("saved_run") == res["run_id"]:
-            st.success(f"Ticket saved as {st.session_state.saved_code}. "
-                       "It will appear on the Tickets page (Step 18).")
+            st.success(f"Ticket saved as {st.session_state.saved_code}.")
+            st.page_link("pages/1_Tickets.py", label="View it on the Tickets page",
+                         icon=":material/confirmation_number:")
         else:
             render_ticket_form(t, res)
