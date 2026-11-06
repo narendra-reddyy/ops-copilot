@@ -17,7 +17,7 @@ if "flash" in st.session_state:
 tickets = list_tickets()
 if not tickets:
     st.info("No tickets yet. Run a triage and save a ticket first.")
-    st.page_link("app.py", label="New triage", icon=":material/arrow_back:")
+    st.page_link("triage.py", label="New triage", icon=":material/arrow_back:")
     st.stop()
 
 # ---------- counts ----------
