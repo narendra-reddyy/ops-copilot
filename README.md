@@ -133,4 +133,7 @@ employer or patient data is used anywhere in this project.
 
 ---
 
-Built by **Narendra Reddy** · [LinkedIn]([YOUR LINKEDIN URL]) · Java, Spring AI, MCP, Python, Claude
+Built by **Narendra Reddy** · [LinkedIn]([www.linkedin.com/in/
+narendra-reddy9
+Vanity URL name
+]) · Java, Spring AI, MCP, Python, Claude
