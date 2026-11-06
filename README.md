@@ -12,9 +12,10 @@ The diagnostic tools are written in **Java (Spring Boot)** and exposed over the
 
 ## Why I built it
 
-I've spent years in IT infrastructure, and nearly every incident starts the same way:
-ping it, check DNS, check the port, search the runbook, write the ticket.
-Ops Copilot automates that first stretch of triage, and it shows its work at every step.
+Most IT incidents start with the same manual steps: ping the host, check DNS,
+test the port, search the runbook, write the ticket. I wanted to see how much of
+that first stretch an AI agent could handle safely, with real tools, visible
+reasoning, and a human approving the result.
 
 ## How it works
 
@@ -113,8 +114,7 @@ ops-copilot/
 
 ## About the data
 
-The network checks are real: they run live against the host you name. The runbooks
-are written from my own troubleshooting experience. The log file is **synthetic**,
+The network checks are real: they run live against the host you name. The runbooks follow standard troubleshooting practice for each failure type. The log file is **synthetic**,
 written to match the demo scenarios (disk full, service crash, DNS error). No
 employer or patient data is used anywhere in this project.
 
